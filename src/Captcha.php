@@ -62,7 +62,7 @@ class Captcha
     public function __construct(Config $config, Session $session)
     {
         $this->config  = $config;
-        if ($session) {
+        if (!$this->hasJSON) {
             $this->session = $session;
         }
     }
@@ -120,12 +120,10 @@ class Captcha
 
         $hash = password_hash($key, PASSWORD_BCRYPT, ['cost' => 10]);
 
-        if ($this->session) {
+        if (!$this->hasJSON) {
             $this->session->set('captcha', [
                 'key' => $hash,
             ]);
-        } else {
-
         }
 
         return [
@@ -138,22 +136,35 @@ class Captcha
      * 验证验证码是否正确
      * @access public
      * @param string $code 用户验证码
+     * @param string|null $key
      * @return bool 用户验证码是否正确
      */
-    public function check(string $code): bool
+    public function check(string $code, string $key = null): bool
     {
-        if (!$this->session->has('captcha')) {
-            return false;
-        }
+        if ($this->hasJSON) {
+            if (!$this->session->has('captcha')) {
+                return false;
+            }
 
-        $key = $this->session->get('captcha.key');
+            $key = $this->session->get('captcha.key');
+        } else {
+            if (!$key) {
+                return false;
+            }
+            $key_len = strlen($key);
+            if ($key_len !== 40) {
+                return false;
+            }
+            $cache_id = 'captcha_' . $key;
+            $key = cache($cache_id);
+        }
 
         $code = mb_strtolower($code, 'UTF-8');
 
         $res = password_verify($code, $key);
 
         if ($res) {
-            $this->session->delete('captcha');
+            isset($cache_id) ? cache($cache_id, null) : $this->session->delete('captcha');
         }
 
         return $res;
@@ -163,10 +174,9 @@ class Captcha
      * 输出验证码并把验证码的值保存的session中
      * @access public
      * @param null|string $config
-     * @param bool        $api
      * @return Response
      */
-    public function create(string $config = null, bool $api = false): Response
+    public function create(string $config = null): Response
     {
         $this->configure($config);
 
@@ -231,6 +241,15 @@ class Captcha
         imagepng($this->im);
         $content = ob_get_clean();
         imagedestroy($this->im);
+
+        if ($this->hasJSON) {
+            $xy = [];
+            $xy['base64Img'] = base64_encode($content);
+            $xy['md5'] = md5($xy['base64Img']);
+            $xy['key'] = sha1($config . 'By_' . time());
+            cache('captcha_' . $xy['key'], $generator['key'], $this->expire);
+            return json($xy, 200);
+        }
 
         return response($content, 200, ['Content-Length' => strlen($content)])->contentType('image/png');
     }

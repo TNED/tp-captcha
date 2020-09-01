@@ -44,11 +44,16 @@ if (!function_exists('captcha_img')) {
 
 if (!function_exists('captcha_check')) {
     /**
-     * @param string $value
+     * 检测code是否匹配
+     * @param string $value code
+     * @param string $key 核销验证码的key值
      * @return bool
      */
-    function captcha_check($value)
+    function captcha_check($value, $key = '')
     {
+        if ($key) {
+            return Captcha::check($value, $key);
+        }
         return Captcha::check($value);
     }
 }
