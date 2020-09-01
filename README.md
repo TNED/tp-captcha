@@ -27,7 +27,7 @@ public function captcha($id = '')
 首先要在你应用的路由定义文件中，注册一个验证码路由规则。
 
 ~~~
-\think\facade\Route::get('captcha/[:id]', "\\think\\captcha\\CaptchaController@index");
+\TNED\facade\Route::get('captcha/[:id]', "\\TNED\\captcha\\CaptchaController@index");
 ~~~
 
 然后就可以在模板文件中使用

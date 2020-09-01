@@ -1,13 +1,4 @@
 <?php
-// +----------------------------------------------------------------------
-// | ThinkPHP [ WE CAN DO IT JUST THINK ]
-// +----------------------------------------------------------------------
-// | Copyright (c) 2006-2015 http://thinkphp.cn All rights reserved.
-// +----------------------------------------------------------------------
-// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
-// +----------------------------------------------------------------------
-// | Author: yunwuxin <448901948@qq.com>
-// +----------------------------------------------------------------------
 
 namespace TNED\captcha;
 
@@ -31,6 +22,8 @@ class Captcha
      */
     private $session = null;
 
+    // JSON格式输出（开启表示无需session支持）
+    protected $hasJSON = false;
     // 验证码字符集合
     protected $codeSet = '2345678abcdefhijkmnpqrstuvwxyzABCDEFGHJKLMNPQRTUVWXY';
     // 验证码过期时间（s）
@@ -69,7 +62,9 @@ class Captcha
     public function __construct(Config $config, Session $session)
     {
         $this->config  = $config;
-        $this->session = $session;
+        if ($session) {
+            $this->session = $session;
+        }
     }
 
     /**
@@ -125,9 +120,13 @@ class Captcha
 
         $hash = password_hash($key, PASSWORD_BCRYPT, ['cost' => 10]);
 
-        $this->session->set('captcha', [
-            'key' => $hash,
-        ]);
+        if ($this->session) {
+            $this->session->set('captcha', [
+                'key' => $hash,
+            ]);
+        } else {
+
+        }
 
         return [
             'value' => $bag,
