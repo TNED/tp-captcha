@@ -46,12 +46,12 @@ public function captcha($id = '')
 使用TP的内置验证功能即可
 ~~~
 $this->validate($data,[
-    'captcha|验证码'=>'require|captcha'
+    'captcha|验证码'=>'require|captcha:key'
 ]);
 ~~~
 或者手动验证
 ~~~
-if(!captcha_check($captcha)){
+if(!captcha_check($captcha, $key)){
  //验证失败
 };
 ~~~

@@ -11,10 +11,10 @@ class CaptchaService extends Service
     public function boot()
     {
         Validate::maker(function ($validate) {
-            $validate->extend('captcha', function ($value, $data) {
-                $key = '';
-                if (isset($data['key'])) {
-                    $key = $data['key'];
+            $validate->extend('captcha', function ($value, $rule = '', $data = []) {
+                $key = $rule;
+                if ($rule && isset($data[$rule])) {
+                    $key = $data[$rule];
                 }
                 return captcha_check($value, $key);
             }, ':attribute错误!');

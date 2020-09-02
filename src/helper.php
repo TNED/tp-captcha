@@ -28,13 +28,14 @@ if (!function_exists('captcha_src')) {
 
 if (!function_exists('captcha_img')) {
     /**
-     * @param string $id
-     * @param string $domid
+     * 生成验证码图片
+     * @param string $config 验证码的配置
+     * @param string $domid 验证码图片ID
      * @return string
      */
-    function captcha_img($id = '', $domid = ''): string
+    function captcha_img($config = '', $domid = ''): string
     {
-        $src = captcha_src($id);
+        $src = captcha_src($config);
 
         $domid = empty($domid) ? $domid : "id='" . $domid . "'";
 
