@@ -21,7 +21,7 @@ class CaptchaService extends Service
         });
 
         $this->registerRoutes(function (Route $route) {
-            $route->get('captcha/[:config]', "\\think\\captcha\\CaptchaController@index");
+            $route->get('captcha/[:config]', "\\TNED\\captcha\\CaptchaController@index");
         });
     }
 }
