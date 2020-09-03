@@ -16,6 +16,8 @@ return [
     'useZh'    => false,
     // 是否使用算术验证码
     'math'     => false,
+    // 算术验证码计算数个数，值为数组表示[min, max]
+    'mathNumberCount' => 2,
     // 是否使用背景图
     'useImgBg' => false,
     //验证码字符大小

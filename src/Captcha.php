@@ -50,8 +50,10 @@ class Captcha
     protected $fontttf = '';
     // 背景颜色
     protected $bg = [243, 251, 254];
-    //算术验证码
+    // 算术验证码
     protected $math = false;
+    // 算术验证码计算数个数，值为数组表示[min, max]
+    protected $mathNumberCount = 2;
 
     /**
      * 架构方法 设置参数
@@ -68,10 +70,11 @@ class Captcha
     }
 
     /**
-     * 配置验证码
-     * @param string|null $config
+     * 获取验证码配置项
+     * @param string|null $config 配置名
+     * @return array 配置参数
      */
-    protected function configure(string $config = null): void
+    protected function configure(string $config = null): array
     {
         if (is_null($config)) {
             $config = $this->config->get('captcha', []);
@@ -79,11 +82,7 @@ class Captcha
             $config = $this->config->get('captcha.' . $config, []);
         }
 
-        foreach ($config as $key => $val) {
-            if (property_exists($this, $key)) {
-                $this->{$key} = $val;
-            }
-        }
+        return $config;
     }
 
     /**
@@ -98,11 +97,44 @@ class Captcha
         if ($this->math) {
             $this->useZh  = false;
             $this->length = 5;
-
-            $x   = random_int(10, 30);
-            $y   = random_int(1, 9);
-            $bag = "{$x} + {$y} = ";
-            $key = $x + $y;
+            // 数学运算，参与计算数的数量
+            $mathNumberCount = $this->mathNumberCount;
+            if (is_array($this->mathNumberCount)) {
+                $c = count($this->mathNumberCount);
+                if ($c === 1) {
+                    list($mathNumberCount) = $mathNumberCount;
+                } else if ($c === 2) {
+                    $mathNumberCount = call_user_func_array('random_int', $mathNumberCount);
+                }
+            }
+            if (!$mathNumberCount || $mathNumberCount < 2) {
+                $mathNumberCount = 2;
+            }
+            // 算术计算符号
+            $math_symbol = ['+', '-', '*', '/'];
+            // 计算数的数量
+            $symbol = $math_symbol[0];
+            $key = random_int(10, 30);
+            $bag = [$key];
+            for ($i = 1; $i < ($mathNumberCount + $mathNumberCount - 1); $i ++) {
+                // 整数为奇数，表示这个数是整数,否则是计算符号
+                if (($i % 2) === 1) {
+                    $n = random_int(1, 9);
+                    if ($symbol === '+') {
+                        $key = $key + $n;
+                    } else if ($symbol === '-') {
+                        $key = $key - $n;
+                    } else if ($symbol === '*') {
+                        $key = $key * $n;
+                    } else if ($symbol === '/') {
+                        $key = $key / $n;
+                    }
+                } else {
+                    $symbol = $math_symbol[random_int(0, 1)];
+                    $bag[] = $symbol;
+                }
+            }
+            $bag = implode(' ', $bag) . ' = ';
             $key .= '';
         } else {
             if ($this->useZh) {
@@ -120,16 +152,50 @@ class Captcha
 
         $hash = password_hash($key, PASSWORD_BCRYPT, ['cost' => 10]);
 
-        if (!$this->hasJSON) {
-            $this->session->set('captcha', [
-                'key' => $hash,
-            ]);
+        return [
+            'value' => $bag, // 展示字符串
+            'key'   => $hash, // 验证码的hash值
+            'result' => $key, // 真实的验证码值
+        ];
+    }
+
+    /**
+     * 设置验证码配置
+     * @param array|string|null $config 验证码配置
+     * @return Captcha
+     */
+    public function setConfig($config) {
+        // 如果输入的是配置名
+        if (is_string($config) || is_null($config)) {
+            $config = $this->configure($config);
         }
 
-        return [
-            'value' => $bag,
-            'key'   => $hash,
-        ];
+        foreach ($config as $key => $val) {
+            if (property_exists($this, $key)) {
+                $this->{$key} = $val;
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * 设置图片的宽度
+     * @param int $width 宽度
+     * @return $this
+     */
+    public function setWidth(int $width) {
+        $this->imageW = $width;
+        return $this;
+    }
+
+    /**
+     * 配置验证码高度
+     * @param int $height 高度
+     * @return $this
+     */
+    public function setHeight(int $height) {
+        $this->imageH = $height;
+        return $this;
     }
 
     /**
@@ -173,12 +239,15 @@ class Captcha
     /**
      * 输出验证码并把验证码的值保存的session中
      * @access public
-     * @param null|string $config
+     * @param array|string $config 配置项
      * @return Response
+     * @throws Exception
      */
-    public function create(string $config = null): Response
+    public function create($config = null): Response
     {
-        $this->configure($config);
+        if (null !== $config || '' !== $config) {
+            $this->setConfig($config);
+        }
 
         $generator = $this->generate();
 
